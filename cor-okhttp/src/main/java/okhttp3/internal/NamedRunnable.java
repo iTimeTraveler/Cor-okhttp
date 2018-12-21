@@ -15,6 +15,9 @@
  */
 package okhttp3.internal;
 
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
+
 /**
  * Runnable implementation which always sets its thread name.
  */
@@ -25,15 +28,18 @@ public abstract class NamedRunnable implements Runnable {
     this.name = Util.format(format, args);
   }
 
+  @Suspendable
   @Override public final void run() {
     String oldName = Thread.currentThread().getName();
     Thread.currentThread().setName(name);
     try {
       execute();
+    } catch (SuspendExecution suspendExecution) {
+      suspendExecution.printStackTrace();
     } finally {
       Thread.currentThread().setName(oldName);
     }
   }
 
-  protected abstract void execute();
+  protected abstract void execute() throws SuspendExecution;
 }

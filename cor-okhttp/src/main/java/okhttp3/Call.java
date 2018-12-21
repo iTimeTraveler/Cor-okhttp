@@ -15,8 +15,10 @@
  */
 package okhttp3;
 
-import java.io.IOException;
+import co.paralleluniverse.fibers.SuspendExecution;
 import okio.Timeout;
+
+import java.io.IOException;
 
 /**
  * A call is a request that has been prepared for execution. A call can be canceled. As this object
@@ -55,7 +57,7 @@ public interface Call extends Cloneable {
    * remote server accepted the request before the failure.
    * @throws IllegalStateException when the call has already been executed.
    */
-  Response execute() throws IOException;
+  Response execute() throws IOException, SuspendExecution;
 
   /**
    * Schedules the request to be executed at some point in the future.

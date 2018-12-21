@@ -15,6 +15,8 @@
  */
 package okhttp3;
 
+import co.paralleluniverse.fibers.SuspendExecution;
+
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
@@ -25,12 +27,12 @@ import javax.annotation.Nullable;
  * or response.
  */
 public interface Interceptor {
-  Response intercept(Chain chain) throws IOException;
+  Response intercept(Chain chain) throws IOException, SuspendExecution;
 
   interface Chain {
     Request request();
 
-    Response proceed(Request request) throws IOException;
+    Response proceed(Request request) throws IOException, SuspendExecution;
 
     /**
      * Returns the connection the request will be executed on. This is only available in the chains

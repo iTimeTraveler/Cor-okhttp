@@ -27,6 +27,8 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocketFactory;
+
+import co.paralleluniverse.fibers.SuspendExecution;
 import okhttp3.Address;
 import okhttp3.Call;
 import okhttp3.CertificatePinner;
@@ -103,7 +105,7 @@ public final class RetryAndFollowUpInterceptor implements Interceptor {
     return streamAllocation;
   }
 
-  @Override public Response intercept(Chain chain) throws IOException {
+  @Override public Response intercept(Chain chain) throws IOException, SuspendExecution {
     Request request = chain.request();
     RealInterceptorChain realChain = (RealInterceptorChain) chain;
     Call call = realChain.call();

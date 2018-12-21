@@ -16,40 +16,9 @@
  */
 package okhttp3.internal.connection;
 
-import java.io.IOException;
-import java.lang.ref.Reference;
-import java.net.ConnectException;
-import java.net.HttpURLConnection;
-import java.net.ProtocolException;
-import java.net.Proxy;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
-import java.net.UnknownServiceException;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import okhttp3.Address;
-import okhttp3.Call;
-import okhttp3.CertificatePinner;
-import okhttp3.Connection;
-import okhttp3.ConnectionPool;
-import okhttp3.ConnectionSpec;
-import okhttp3.EventListener;
-import okhttp3.Handshake;
-import okhttp3.HttpUrl;
-import okhttp3.Interceptor;
-import okhttp3.OkHttpClient;
-import okhttp3.Protocol;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.Route;
+import co.paralleluniverse.fibers.SuspendExecution;
+import itimetraveler.CoroutinesNewIO;
+import okhttp3.*;
 import okhttp3.internal.Internal;
 import okhttp3.internal.Util;
 import okhttp3.internal.Version;
@@ -67,6 +36,20 @@ import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.Okio;
 import okio.Source;
+
+import javax.annotation.Nullable;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.IOException;
+import java.lang.ref.Reference;
+import java.net.*;
+import java.nio.channels.SocketChannel;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static java.net.HttpURLConnection.HTTP_OK;
 import static java.net.HttpURLConnection.HTTP_PROXY_AUTH;
@@ -130,7 +113,7 @@ public final class RealConnection extends Http2Connection.Listener implements Co
 
   public void connect(int connectTimeout, int readTimeout, int writeTimeout,
       int pingIntervalMillis, boolean connectionRetryEnabled, Call call,
-      EventListener eventListener) {
+      EventListener eventListener) throws SuspendExecution {
     if (protocol != null) throw new IllegalStateException("already connected");
 
     RouteException routeException = null;
@@ -211,7 +194,7 @@ public final class RealConnection extends Http2Connection.Listener implements Co
    * proxy server can issue an auth challenge and then close the connection.
    */
   private void connectTunnel(int connectTimeout, int readTimeout, int writeTimeout, Call call,
-      EventListener eventListener) throws IOException {
+      EventListener eventListener) throws IOException, SuspendExecution {
     Request tunnelRequest = createTunnelRequest();
     HttpUrl url = tunnelRequest.url();
     for (int i = 0; i < MAX_TUNNEL_ATTEMPTS; i++) {
@@ -230,8 +213,38 @@ public final class RealConnection extends Http2Connection.Listener implements Co
     }
   }
 
-  /** Does all the work necessary to build a full HTTP or HTTPS connection on a raw socket. */
   private void connectSocket(int connectTimeout, int readTimeout, Call call,
+                             EventListener eventListener) throws IOException, SuspendExecution {
+    if (false) {
+      connectSocket0(connectTimeout, readTimeout, call, eventListener);
+      return;
+    }
+
+    // CoroutinesNewIO with NIO
+    Proxy proxy = route.proxy();
+    Address address = route.address();
+
+    eventListener.connectStart(call, route.socketAddress(), proxy);
+    SocketChannel fsc = CoroutinesNewIO.getInstance().connect(route.socketAddress(), connectTimeout);
+    if (fsc == null) {
+      throw new IOException("CoroutinesNewIO connect result is null.");
+    }
+    fsc.configureBlocking(true);
+    rawSocket = fsc.socket();
+    rawSocket.setSoTimeout(readTimeout);
+
+    try {
+      source = Okio.buffer(Okio.source(rawSocket));
+      sink = Okio.buffer(Okio.sink(rawSocket));
+    } catch (NullPointerException npe) {
+      if (NPE_THROW_WITH_NULL.equals(npe.getMessage())) {
+        throw new IOException(npe);
+      }
+    }
+  }
+
+  /** Does all the work necessary to build a full HTTP or HTTPS connection on a raw socket. */
+  private void connectSocket0(int connectTimeout, int readTimeout, Call call,
       EventListener eventListener) throws IOException {
     Proxy proxy = route.proxy();
     Address address = route.address();

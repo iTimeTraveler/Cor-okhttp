@@ -17,6 +17,8 @@
 package okhttp3.internal.connection;
 
 import java.io.IOException;
+
+import co.paralleluniverse.fibers.SuspendExecution;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -32,7 +34,7 @@ public final class ConnectInterceptor implements Interceptor {
     this.client = client;
   }
 
-  @Override public Response intercept(Chain chain) throws IOException {
+  @Override public Response intercept(Chain chain) throws IOException, SuspendExecution {
     RealInterceptorChain realChain = (RealInterceptorChain) chain;
     Request request = realChain.request();
     StreamAllocation streamAllocation = realChain.streamAllocation();

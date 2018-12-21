@@ -15,25 +15,20 @@
  */
 package okhttp3.internal.connection;
 
-import java.io.IOException;
-import java.lang.ref.Reference;
-import java.lang.ref.WeakReference;
-import java.net.Socket;
-import java.util.List;
-import okhttp3.Address;
-import okhttp3.Call;
-import okhttp3.Connection;
-import okhttp3.ConnectionPool;
-import okhttp3.EventListener;
-import okhttp3.Interceptor;
-import okhttp3.OkHttpClient;
-import okhttp3.Route;
+import co.paralleluniverse.fibers.SuspendExecution;
+import okhttp3.*;
 import okhttp3.internal.Internal;
 import okhttp3.internal.Util;
 import okhttp3.internal.http.HttpCodec;
 import okhttp3.internal.http2.ConnectionShutdownException;
 import okhttp3.internal.http2.ErrorCode;
 import okhttp3.internal.http2.StreamResetException;
+
+import java.io.IOException;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
+import java.net.Socket;
+import java.util.List;
 
 import static okhttp3.internal.Util.closeQuietly;
 
@@ -103,7 +98,7 @@ public final class StreamAllocation {
   }
 
   public HttpCodec newStream(
-      OkHttpClient client, Interceptor.Chain chain, boolean doExtensiveHealthChecks) {
+      OkHttpClient client, Interceptor.Chain chain, boolean doExtensiveHealthChecks) throws SuspendExecution {
     int connectTimeout = chain.connectTimeoutMillis();
     int readTimeout = chain.readTimeoutMillis();
     int writeTimeout = chain.writeTimeoutMillis();
@@ -130,7 +125,7 @@ public final class StreamAllocation {
    */
   private RealConnection findHealthyConnection(int connectTimeout, int readTimeout,
       int writeTimeout, int pingIntervalMillis, boolean connectionRetryEnabled,
-      boolean doExtensiveHealthChecks) throws IOException {
+      boolean doExtensiveHealthChecks) throws IOException, SuspendExecution {
     while (true) {
       RealConnection candidate = findConnection(connectTimeout, readTimeout, writeTimeout,
           pingIntervalMillis, connectionRetryEnabled);
@@ -158,7 +153,7 @@ public final class StreamAllocation {
    * then the pool, finally building a new connection.
    */
   private RealConnection findConnection(int connectTimeout, int readTimeout, int writeTimeout,
-      int pingIntervalMillis, boolean connectionRetryEnabled) throws IOException {
+      int pingIntervalMillis, boolean connectionRetryEnabled) throws IOException, SuspendExecution {
     boolean foundPooledConnection = false;
     RealConnection result = null;
     Route selectedRoute = null;

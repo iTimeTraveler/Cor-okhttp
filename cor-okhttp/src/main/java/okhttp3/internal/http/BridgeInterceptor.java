@@ -18,6 +18,8 @@ package okhttp3.internal.http;
 
 import java.io.IOException;
 import java.util.List;
+
+import co.paralleluniverse.fibers.SuspendExecution;
 import okhttp3.Cookie;
 import okhttp3.CookieJar;
 import okhttp3.Headers;
@@ -44,7 +46,7 @@ public final class BridgeInterceptor implements Interceptor {
     this.cookieJar = cookieJar;
   }
 
-  @Override public Response intercept(Chain chain) throws IOException {
+  @Override public Response intercept(Chain chain) throws IOException, SuspendExecution {
     Request userRequest = chain.request();
     Request.Builder requestBuilder = userRequest.newBuilder();
 

@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import javax.annotation.Nullable;
+
+import co.paralleluniverse.fibers.SuspendExecution;
 import okhttp3.internal.NamedRunnable;
 import okhttp3.internal.cache.CacheInterceptor;
 import okhttp3.internal.connection.ConnectInterceptor;
@@ -37,7 +39,7 @@ import okio.Timeout;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static okhttp3.internal.platform.Platform.INFO;
 
-final class RealCall implements Call {
+public final class RealCall implements Call {
   final OkHttpClient client;
   final RetryAndFollowUpInterceptor retryAndFollowUpInterceptor;
   final AsyncTimeout timeout;
@@ -79,7 +81,7 @@ final class RealCall implements Call {
     return originalRequest;
   }
 
-  @Override public Response execute() throws IOException {
+  @Override public Response execute() throws IOException, SuspendExecution {
     synchronized (this) {
       if (executed) throw new IllegalStateException("Already Executed");
       executed = true;
@@ -151,7 +153,7 @@ final class RealCall implements Call {
     return retryAndFollowUpInterceptor.streamAllocation();
   }
 
-  final class AsyncCall extends NamedRunnable {
+  public final class AsyncCall extends NamedRunnable {
     private final Callback responseCallback;
 
     AsyncCall(Callback responseCallback) {
@@ -193,7 +195,7 @@ final class RealCall implements Call {
       }
     }
 
-    @Override protected void execute() {
+    @Override protected void execute() throws SuspendExecution {
       boolean signalledCallback = false;
       timeout.enter();
       try {
@@ -234,7 +236,7 @@ final class RealCall implements Call {
     return originalRequest.url().redact();
   }
 
-  Response getResponseWithInterceptorChain() throws IOException {
+  Response getResponseWithInterceptorChain() throws IOException, SuspendExecution {
     // Build a full stack of interceptors.
     List<Interceptor> interceptors = new ArrayList<>();
     interceptors.addAll(client.interceptors());

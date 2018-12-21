@@ -17,6 +17,8 @@
 package okhttp3.internal.cache;
 
 import java.io.IOException;
+
+import co.paralleluniverse.fibers.SuspendExecution;
 import okhttp3.Headers;
 import okhttp3.Interceptor;
 import okhttp3.Protocol;
@@ -49,7 +51,7 @@ public final class CacheInterceptor implements Interceptor {
     this.cache = cache;
   }
 
-  @Override public Response intercept(Chain chain) throws IOException {
+  @Override public Response intercept(Chain chain) throws IOException, SuspendExecution {
     Response cacheCandidate = cache != null
         ? cache.get(chain.request())
         : null;

@@ -18,6 +18,8 @@ package okhttp3.internal.http;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import co.paralleluniverse.fibers.SuspendExecution;
 import okhttp3.Call;
 import okhttp3.Connection;
 import okhttp3.EventListener;
@@ -118,12 +120,12 @@ public final class RealInterceptorChain implements Interceptor.Chain {
     return request;
   }
 
-  @Override public Response proceed(Request request) throws IOException {
+  @Override public Response proceed(Request request) throws IOException, SuspendExecution {
     return proceed(request, streamAllocation, httpCodec, connection);
   }
 
   public Response proceed(Request request, StreamAllocation streamAllocation, HttpCodec httpCodec,
-      RealConnection connection) throws IOException {
+      RealConnection connection) throws IOException, SuspendExecution {
     if (index >= interceptors.size()) throw new AssertionError();
 
     calls++;
